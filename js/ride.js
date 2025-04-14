@@ -15,7 +15,12 @@ WildRydes.map = WildRydes.map || {};
         alert(error);
         window.location.href = '/signin.html';
     });
+        // Modify your ride.js error handling
     function requestUnicorn(pickupLocation) {
+        const requestButton = $('#request');
+        requestButton.prop('disabled', true);
+        requestButton.text('Requesting...');
+    
         $.ajax({
             method: 'POST',
             url: _config.api.invokeUrl + '/ride',
@@ -31,12 +36,32 @@ WildRydes.map = WildRydes.map || {};
             contentType: 'application/json',
             success: completeRequest,
             error: function ajaxError(jqXHR, textStatus, errorThrown) {
-                console.error('Error requesting ride: ', textStatus, ', Details: ', errorThrown);
-                console.error('Response: ', jqXHR.responseText);
-                alert('An error occured when requesting your unicorn:\n' + jqXHR.responseText);
+                // Use setTimeout to defer error handling
+                setTimeout(() => {
+                    console.error('Error requesting ride:', {
+                        status: jqXHR.status,
+                        textStatus: textStatus,
+                        errorThrown: errorThrown
+                    });
+    
+                    let errorMessage = 'An error occurred when requesting your unicorn';
+                    try {
+                        const response = JSON.parse(jqXHR.responseText);
+                        errorMessage = response.message || response.error || errorMessage;
+                    } catch (e) {}
+    
+                    requestButton.prop('disabled', false)
+                               .text('Request Unicorn');
+    
+                    displayUpdate('Error: ' + errorMessage);
+                    
+                    // Defer alert to prevent UI blocking
+                    setTimeout(() => alert(errorMessage), 100);
+                }, 0);
             }
         });
     }
+    
 
     function completeRequest(result) {
         var unicorn;
