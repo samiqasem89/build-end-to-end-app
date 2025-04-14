@@ -83,9 +83,12 @@ WildRydes.map = WildRydes.map || {};
     }
 
     function animateArrival(callback) {
-        var dest = WildRydes.map.selectedPoint;
-        var origin = {};
-
+    var dest = WildRydes.map.selectedPoint;
+    var origin = {};
+    
+    // Move calculations outside of animation loop
+    function prepareAnimationData() {
+        // Calculate origin point
         if (dest.latitude > WildRydes.map.center.latitude) {
             origin.latitude = WildRydes.map.extent.minLat;
         } else {
@@ -97,9 +100,23 @@ WildRydes.map = WildRydes.map || {};
         } else {
             origin.longitude = WildRydes.map.extent.maxLng;
         }
-
-        WildRydes.map.animate(origin, dest, callback);
+        
+        return {
+            origin: origin,
+            destination: dest
+        };
     }
+
+    // Prepare the data before starting animation
+    const animationData = prepareAnimationData();
+    
+    // Use prepared data in animation
+    WildRydes.map.animate(
+        animationData.origin, 
+        animationData.destination, 
+        callback
+    );
+}
 
     function displayUpdate(text) {
         $('#updates').append($('<li>' + text + '</li>'));
