@@ -16,42 +16,27 @@ WildRydes.map = WildRydes.map || {};
         window.location.href = '/signin.html';
     });
     function requestUnicorn(pickupLocation) {
-    $.ajax({
-        method: 'POST',
-        url: _config.api.invokeUrl + '/ride',
-        headers: {
-            Authorization: authToken
-        },
-        data: JSON.stringify({
-            PickupLocation: {
-                Latitude: pickupLocation.latitude,
-                Longitude: pickupLocation.longitude
+        $.ajax({
+            method: 'POST',
+            url: _config.api.invokeUrl + '/ride',
+            headers: {
+                Authorization: authToken
+            },
+            data: JSON.stringify({
+                PickupLocation: {
+                    Latitude: pickupLocation.latitude,
+                    Longitude: pickupLocation.longitude
+                }
+            }),
+            contentType: 'application/json',
+            success: completeRequest,
+            error: function ajaxError(jqXHR, textStatus, errorThrown) {
+                console.error('Error requesting ride: ', textStatus, ', Details: ', errorThrown);
+                console.error('Response: ', jqXHR.responseText);
+                alert('An error occured when requesting your unicorn:\n' + jqXHR.responseText);
             }
-        }),
-        contentType: 'application/json',
-        success: completeRequest,
-        error: function ajaxError(jqXHR, textStatus, errorThrown) {
-            console.error('Error requesting ride: ', textStatus, ', Details: ', errorThrown);
-            console.error('Response: ', jqXHR.responseText);
-            
-            let errorMessage = 'An error occurred when requesting your unicorn';
-            try {
-                const response = JSON.parse(jqXHR.responseText);
-                errorMessage = response.message || response.error || errorMessage;
-            } catch (e) {
-                console.error('Could not parse error response:', e);
-            }
-            
-            displayUpdate('Error: ' + errorMessage);
-            alert(errorMessage);
-        }
-    });
-}
-
-function displayUpdate(text) {
-    $('#updates').append($('<li>' + text + '</li>'));
-}
-
+        });
+    }
 
     function completeRequest(result) {
         var unicorn;
