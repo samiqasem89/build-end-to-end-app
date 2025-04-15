@@ -31,11 +31,9 @@ WildRydes.map = WildRydes.map || {};
             contentType: 'application/json',
             success: completeRequest,
             error: function ajaxError(jqXHR, textStatus, errorThrown) {
-               requestIdleCallback(() => {
-                    console.error('Error requesting ride: ', textStatus, ', Details: ', errorThrown);
-                    console.error('Response: ', jqXHR.responseText);
-                    alert('An error occurred when requesting your unicorn:\n' + jqXHR.responseText);
-                });
+                console.error('Error requesting ride: ', textStatus, ', Details: ', errorThrown);
+                console.error('Response: ', jqXHR.responseText);
+                alert('An error occured when requesting your unicorn:\n' + jqXHR.responseText);
             }
         });
     }
@@ -56,35 +54,20 @@ WildRydes.map = WildRydes.map || {};
     }
 
     // Register click handler for #request button
-    // Modify the initialization code
     $(function onDocReady() {
-        // Critical immediate operations
-        const criticalInit = () => {
-            $('#request').click(handleRequestClick);
-            $(WildRydes.map).on('pickupChange', handlePickupChanged);
-        };
+        $('#request').click(handleRequestClick);
+        $(WildRydes.map).on('pickupChange', handlePickupChanged);
 
-        // Non-critical operations
-        const nonCriticalInit = () => {
-            WildRydes.authToken.then(function updateAuthMessage(token) {
-                if (token) {
-                    displayUpdate('You are authenticated. Click to see your <a href="#authTokenModal" data-toggle="modal">auth token</a>.');
-                    $('.authToken').text(token);
-                }
-            });
-
-            if (!_config.api.invokeUrl) {
-                $('#noApiMessage').show();
+        WildRydes.authToken.then(function updateAuthMessage(token) {
+            if (token) {
+                displayUpdate('You are authenticated. Click to see your <a href="#authTokenModal" data-toggle="modal">auth token</a>.');
+                $('.authToken').text(token);
             }
-        };
+        });
 
-        // Execute critical operations immediately
-        criticalInit();
-
-        // Defer non-critical operations
-        requestIdleCallback ? 
-            requestIdleCallback(nonCriticalInit) : 
-            setTimeout(nonCriticalInit, 0);
+        if (!_config.api.invokeUrl) {
+            $('#noApiMessage').show();
+        }
     });
 
     function handlePickupChanged() {
@@ -100,12 +83,9 @@ WildRydes.map = WildRydes.map || {};
     }
 
     function animateArrival(callback) {
-    var dest = WildRydes.map.selectedPoint;
-    var origin = {};
-    
-    // Move calculations outside of animation loop
-    function prepareAnimationData() {
-        // Calculate origin point
+        var dest = WildRydes.map.selectedPoint;
+        var origin = {};
+
         if (dest.latitude > WildRydes.map.center.latitude) {
             origin.latitude = WildRydes.map.extent.minLat;
         } else {
@@ -117,23 +97,9 @@ WildRydes.map = WildRydes.map || {};
         } else {
             origin.longitude = WildRydes.map.extent.maxLng;
         }
-        
-        return {
-            origin: origin,
-            destination: dest
-        };
-    }
 
-    // Prepare the data before starting animation
-    const animationData = prepareAnimationData();
-    
-    // Use prepared data in animation
-    WildRydes.map.animate(
-        animationData.origin, 
-        animationData.destination, 
-        callback
-    );
-}
+        WildRydes.map.animate(origin, dest, callback);
+    }
 
     function displayUpdate(text) {
         $('#updates').append($('<li>' + text + '</li>'));
