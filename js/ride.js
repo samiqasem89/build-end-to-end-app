@@ -31,9 +31,11 @@ WildRydes.map = WildRydes.map || {};
             contentType: 'application/json',
             success: completeRequest,
             error: function ajaxError(jqXHR, textStatus, errorThrown) {
-                console.error('Error requesting ride: ', textStatus, ', Details: ', errorThrown);
-                console.error('Response: ', jqXHR.responseText);
-                alert('An error occured when requesting your unicorn:\n' + jqXHR.responseText);
+               requestIdleCallback(() => {
+                    console.error('Error requesting ride: ', textStatus, ', Details: ', errorThrown);
+                    console.error('Response: ', jqXHR.responseText);
+                    alert('An error occurred when requesting your unicorn:\n' + jqXHR.responseText);
+                });
             }
         });
     }
@@ -54,20 +56,35 @@ WildRydes.map = WildRydes.map || {};
     }
 
     // Register click handler for #request button
+    // Modify the initialization code
     $(function onDocReady() {
-        $('#request').click(handleRequestClick);
-        $(WildRydes.map).on('pickupChange', handlePickupChanged);
+        // Critical immediate operations
+        const criticalInit = () => {
+            $('#request').click(handleRequestClick);
+            $(WildRydes.map).on('pickupChange', handlePickupChanged);
+        };
 
-        WildRydes.authToken.then(function updateAuthMessage(token) {
-            if (token) {
-                displayUpdate('You are authenticated. Click to see your <a href="#authTokenModal" data-toggle="modal">auth token</a>.');
-                $('.authToken').text(token);
+        // Non-critical operations
+        const nonCriticalInit = () => {
+            WildRydes.authToken.then(function updateAuthMessage(token) {
+                if (token) {
+                    displayUpdate('You are authenticated. Click to see your <a href="#authTokenModal" data-toggle="modal">auth token</a>.');
+                    $('.authToken').text(token);
+                }
+            });
+
+            if (!_config.api.invokeUrl) {
+                $('#noApiMessage').show();
             }
-        });
+        };
 
-        if (!_config.api.invokeUrl) {
-            $('#noApiMessage').show();
-        }
+        // Execute critical operations immediately
+        criticalInit();
+
+        // Defer non-critical operations
+        requestIdleCallback ? 
+            requestIdleCallback(nonCriticalInit) : 
+            setTimeout(nonCriticalInit, 0);
     });
 
     function handlePickupChanged() {
