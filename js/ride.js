@@ -16,16 +16,33 @@ WildRydes.map = WildRydes.map || {};
         window.location.href = '/signin.html';
     });
     function requestUnicorn(pickupLocation) {
-         console.log('Sending request with data:', {
-            url: _config.api.invokeUrl + '/ride',
-            pickupLocation: pickupLocation,
-            authToken: authToken ? 'Present' : 'Missing'
-        });
+    // Verify we have all required data before making the request
+        if (!_config.api.invokeUrl) {
+            alert('Error: API URL is not configured');
+            return;
+        }
+    
+        if (!authToken) {
+            alert('Error: You are not authenticated');
+            window.location.href = '/signin.html';
+            return;
+        }
+    
+        if (!pickupLocation || !pickupLocation.latitude || !pickupLocation.longitude) {
+            alert('Error: Invalid pickup location');
+            return;
+        }
+    
+        // Log the request details
+        console.log('Making request to:', _config.api.invokeUrl + '/ride');
+        console.log('With pickup location:', pickupLocation);
+    
         $.ajax({
             method: 'POST',
             url: _config.api.invokeUrl + '/ride',
             headers: {
-                Authorization: authToken
+                'Authorization': authToken,
+                'Content-Type': 'application/json'
             },
             data: JSON.stringify({
                 PickupLocation: {
@@ -35,39 +52,62 @@ WildRydes.map = WildRydes.map || {};
             }),
             contentType: 'application/json',
             success: function(result) {
-                console.log('Success Response:', result);
-                if (!result) {
-                    alert('No response received from the server. Please try again.');
-                    return;
-                }
+                console.log('Successful response:', result);
                 completeRequest(result);
             },
             error: function ajaxError(jqXHR, textStatus, errorThrown) {
-            // Log the complete error information
-                console.log('Full error details:', {
-                    status: jqXHR.status,
-                    statusText: jqXHR.statusText,
-                    responseText: jqXHR.responseText,
-                    textStatus: textStatus,
-                    errorThrown: errorThrown
-                });
+                console.error('Request failed with status:', jqXHR.status);
+                console.error('Response text:', jqXHR.responseText);
+                console.error('Status:', textStatus);
+                console.error('Error:', errorThrown);
     
-                let errorMessage = '';
-                
-                try {
-                    // Try to parse the error response
-                    const errorResponse = jqXHR.responseText ? JSON.parse(jqXHR.responseText) : {};
-                    errorMessage = errorResponse.message || errorResponse.Message || 
-                                 errorResponse.error || 'Unknown error occurred';
-                } catch (e) {
-                    errorMessage = jqXHR.responseText || 'An unknown error occurred';
+                let errorMessage = 'Request failed: ';
+    
+                if (jqXHR.status === 401) {
+                    errorMessage = 'Authentication error. Please sign in again.';
+                    window.location.href = '/signin.html';
+                } else if (jqXHR.status === 403) {
+                    errorMessage = 'Authorization error. Please sign in again.';
+                    window.location.href = '/signin.html';
+                } else if (jqXHR.status === 404) {
+                    errorMessage = 'API endpoint not found. Please check configuration.';
+                } else if (jqXHR.status === 500) {
+                    errorMessage = 'Server error. Please try again later.';
+                } else {
+                    try {
+                        const errorResponse = JSON.parse(jqXHR.responseText);
+                        errorMessage += errorResponse.message || errorResponse.Message || 'Unknown error occurred';
+                    } catch (e) {
+                        errorMessage += jqXHR.responseText || `${textStatus} - ${errorThrown}`;
+                    }
                 }
     
-                alert('Error requesting unicorn: ' + errorMessage);
+                alert(errorMessage);
             }
         });
     }
 
+    function validateConfig() {
+        const config = window._config;
+        if (!config) {
+            console.error('Configuration object is missing');
+            return false;
+        }
+        if (!config.api) {
+            console.error('API configuration is missing');
+            return false;
+        }
+        if (!config.api.invokeUrl) {
+            console.error('API invoke URL is missing');
+            return false;
+        }
+        // Check if the URL is properly formatted
+        if (!config.api.invokeUrl.startsWith('https://')) {
+            console.error('API invoke URL must start with https://');
+            return false;
+        }
+        return true;
+    }
 
     function completeRequest(result) {
         console.log('CompleteRequest received:', result);
@@ -94,18 +134,18 @@ WildRydes.map = WildRydes.map || {};
         }
     }
     // Add this helper function to check configuration
-function checkConfiguration() {
-    console.log('Checking configuration...');
-    if (!_config.api.invokeUrl) {
-        console.error('API invoke URL is not configured');
-        return false;
+    function checkConfiguration() {
+        console.log('Checking configuration...');
+        if (!_config.api.invokeUrl) {
+            console.error('API invoke URL is not configured');
+            return false;
+        }
+        if (!authToken) {
+            console.error('Auth token is not available');
+            return false;
+        }
+        return true;
     }
-    if (!authToken) {
-        console.error('Auth token is not available');
-        return false;
-    }
-    return true;
-}
 
 
     // Register click handler for #request button
