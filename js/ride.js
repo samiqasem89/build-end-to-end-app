@@ -16,6 +16,11 @@ WildRydes.map = WildRydes.map || {};
         window.location.href = '/signin.html';
     });
     function requestUnicorn(pickupLocation) {
+         console.log('Sending request with data:', {
+            url: _config.api.invokeUrl + '/ride',
+            pickupLocation: pickupLocation,
+            authToken: authToken ? 'Present' : 'Missing'
+        });
         $.ajax({
             method: 'POST',
             url: _config.api.invokeUrl + '/ride',
@@ -30,59 +35,77 @@ WildRydes.map = WildRydes.map || {};
             }),
             contentType: 'application/json',
             success: function(result) {
-                if (!result || !result.Unicorn) {
-                    console.error('Invalid response format:', result);
-                    alert('Invalid response received from the server. Please try again.');
+                console.log('Success Response:', result);
+                if (!result) {
+                    alert('No response received from the server. Please try again.');
                     return;
                 }
                 completeRequest(result);
             },
             error: function ajaxError(jqXHR, textStatus, errorThrown) {
-                let errorMessage = 'An error occurred when requesting your unicorn:\n';
+            // Log the complete error information
+                console.log('Full error details:', {
+                    status: jqXHR.status,
+                    statusText: jqXHR.statusText,
+                    responseText: jqXHR.responseText,
+                    textStatus: textStatus,
+                    errorThrown: errorThrown
+                });
+    
+                let errorMessage = '';
                 
-                if (jqXHR.responseText) {
-                    try {
-                        const errorResponse = JSON.parse(jqXHR.responseText);
-                        errorMessage += errorResponse.message || errorResponse.Message || jqXHR.responseText;
-                    } catch (e) {
-                        errorMessage += jqXHR.responseText;
-                    }
-                } else {
-                    errorMessage += textStatus + ': ' + errorThrown;
+                try {
+                    // Try to parse the error response
+                    const errorResponse = jqXHR.responseText ? JSON.parse(jqXHR.responseText) : {};
+                    errorMessage = errorResponse.message || errorResponse.Message || 
+                                 errorResponse.error || 'Unknown error occurred';
+                } catch (e) {
+                    errorMessage = jqXHR.responseText || 'An unknown error occurred';
                 }
     
-                console.error('Error requesting ride: ', textStatus, ', Details: ', errorThrown);
-                console.error('Response: ', jqXHR.responseText);
-                alert(errorMessage);
+                alert('Error requesting unicorn: ' + errorMessage);
             }
         });
     }
 
 
     function completeRequest(result) {
-        if (!result || !result.Unicorn) {
-            console.error('Invalid response format:', result);
-            alert('Invalid response received from the server. Please try again.');
-            return;
-        }
+        console.log('CompleteRequest received:', result);
     
-        const unicorn = result.Unicorn;
-        if (!unicorn.Name || !unicorn.Color || !unicorn.Gender) {
-            console.error('Missing unicorn properties:', unicorn);
-            alert('Invalid unicorn data received. Please try again.');
-            return;
-        }
+        try {
+            if (!result.Unicorn) {
+                throw new Error('No unicorn data in response');
+            }
     
-        const pronoun = unicorn.Gender === 'Male' ? 'his' : 'her';
-        displayUpdate(unicorn.Name + ', your ' + unicorn.Color + ' unicorn, is on ' + pronoun + ' way.');
-        
-        animateArrival(function animateCallback() {
-            displayUpdate(unicorn.Name + ' has arrived. Giddy up!');
-            WildRydes.map.unsetLocation();
-            $('#request').prop('disabled', 'disabled');
-            $('#request').text('Set Pickup');
-        });
+            const unicorn = result.Unicorn;
+            const pronoun = unicorn.Gender === 'Male' ? 'his' : 'her';
+            
+            displayUpdate(`${unicorn.Name}, your ${unicorn.Color} unicorn, is on ${pronoun} way.`);
+            
+            animateArrival(function animateCallback() {
+                displayUpdate(`${unicorn.Name} has arrived. Giddy up!`);
+                WildRydes.map.unsetLocation();
+                $('#request').prop('disabled', 'disabled');
+                $('#request').text('Set Pickup');
+            });
+        } catch (error) {
+            console.error('Error in completeRequest:', error);
+            alert('Error processing unicorn request: ' + error.message);
+        }
     }
+    // Add this helper function to check configuration
+function checkConfiguration() {
+    console.log('Checking configuration...');
+    if (!_config.api.invokeUrl) {
+        console.error('API invoke URL is not configured');
+        return false;
+    }
+    if (!authToken) {
+        console.error('Auth token is not available');
+        return false;
+    }
+    return true;
+}
 
 
     // Register click handler for #request button
@@ -108,11 +131,117 @@ WildRydes.map = WildRydes.map || {};
         requestButton.prop('disabled', false);
     }
 
-    function handleRequestClick(event) {
-        var pickupLocation = WildRydes.map.selectedPoint;
-        event.preventDefault();
-        requestUnicorn(pickupLocation);
+    function requestUnicorn(pickupLocation) {
+    // First, log what we're sending
+    console.log('Sending request with data:', {
+        url: _config.api.invokeUrl + '/ride',
+        pickupLocation: pickupLocation,
+        authToken: authToken ? 'Present' : 'Missing'
+    });
+
+    $.ajax({
+        method: 'POST',
+        url: _config.api.invokeUrl + '/ride',
+        headers: {
+            Authorization: authToken
+        },
+        data: JSON.stringify({
+            PickupLocation: {
+                Latitude: pickupLocation.latitude,
+                Longitude: pickupLocation.longitude
+            }
+        }),
+        contentType: 'application/json',
+        success: function(result) {
+            // Log the successful response
+            console.log('Success Response:', result);
+            if (!result) {
+                alert('No response received from the server. Please try again.');
+                return;
+            }
+            completeRequest(result);
+        },
+        error: function ajaxError(jqXHR, textStatus, errorThrown) {
+            // Log the complete error information
+            console.log('Full error details:', {
+                status: jqXHR.status,
+                statusText: jqXHR.statusText,
+                responseText: jqXHR.responseText,
+                textStatus: textStatus,
+                errorThrown: errorThrown
+            });
+
+            let errorMessage = '';
+            
+            try {
+                // Try to parse the error response
+                const errorResponse = jqXHR.responseText ? JSON.parse(jqXHR.responseText) : {};
+                errorMessage = errorResponse.message || errorResponse.Message || 
+                             errorResponse.error || 'Unknown error occurred';
+            } catch (e) {
+                errorMessage = jqXHR.responseText || 'An unknown error occurred';
+            }
+
+            alert('Error requesting unicorn: ' + errorMessage);
+        }
+    });
+}
+
+function completeRequest(result) {
+    // Log the incoming result to completeRequest
+    console.log('CompleteRequest received:', result);
+
+    try {
+        if (!result.Unicorn) {
+            throw new Error('No unicorn data in response');
+        }
+
+        const unicorn = result.Unicorn;
+        const pronoun = unicorn.Gender === 'Male' ? 'his' : 'her';
+        
+        displayUpdate(`${unicorn.Name}, your ${unicorn.Color} unicorn, is on ${pronoun} way.`);
+        
+        animateArrival(function animateCallback() {
+            displayUpdate(`${unicorn.Name} has arrived. Giddy up!`);
+            WildRydes.map.unsetLocation();
+            $('#request').prop('disabled', 'disabled');
+            $('#request').text('Set Pickup');
+        });
+    } catch (error) {
+        console.error('Error in completeRequest:', error);
+        alert('Error processing unicorn request: ' + error.message);
     }
+}
+
+// Add this helper function to check configuration
+function checkConfiguration() {
+    console.log('Checking configuration...');
+    if (!_config.api.invokeUrl) {
+        console.error('API invoke URL is not configured');
+        return false;
+    }
+    if (!authToken) {
+        console.error('Auth token is not available');
+        return false;
+    }
+    return true;
+}
+
+// Modify the handleRequestClick function
+function handleRequestClick(event) {
+    event.preventDefault();
+    if (!checkConfiguration()) {
+        alert('Application is not properly configured. Please check console for details.');
+        return;
+    }
+    const pickupLocation = WildRydes.map.selectedPoint;
+    if (!pickupLocation) {
+        alert('Please select a pickup location on the map.');
+        return;
+    }
+    requestUnicorn(pickupLocation);
+}
+
 
     function animateArrival(callback) {
         var dest = WildRydes.map.selectedPoint;
