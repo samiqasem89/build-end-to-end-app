@@ -29,22 +29,53 @@ WildRydes.map = WildRydes.map || {};
                 }
             }),
             contentType: 'application/json',
-            success: completeRequest,
+            success: function(result) {
+                if (!result || !result.Unicorn) {
+                    console.error('Invalid response format:', result);
+                    alert('Invalid response received from the server. Please try again.');
+                    return;
+                }
+                completeRequest(result);
+            },
             error: function ajaxError(jqXHR, textStatus, errorThrown) {
+                let errorMessage = 'An error occurred when requesting your unicorn:\n';
+                
+                if (jqXHR.responseText) {
+                    try {
+                        const errorResponse = JSON.parse(jqXHR.responseText);
+                        errorMessage += errorResponse.message || errorResponse.Message || jqXHR.responseText;
+                    } catch (e) {
+                        errorMessage += jqXHR.responseText;
+                    }
+                } else {
+                    errorMessage += textStatus + ': ' + errorThrown;
+                }
+    
                 console.error('Error requesting ride: ', textStatus, ', Details: ', errorThrown);
                 console.error('Response: ', jqXHR.responseText);
-                alert('An error occured when requesting your unicorn:\n' + jqXHR.responseText);
+                alert(errorMessage);
             }
         });
     }
 
+
     function completeRequest(result) {
-        var unicorn;
-        var pronoun;
-        console.log('Response received from API: ', result);
-        unicorn = result.Unicorn;
-        pronoun = unicorn.Gender === 'Male' ? 'his' : 'her';
+        if (!result || !result.Unicorn) {
+            console.error('Invalid response format:', result);
+            alert('Invalid response received from the server. Please try again.');
+            return;
+        }
+    
+        const unicorn = result.Unicorn;
+        if (!unicorn.Name || !unicorn.Color || !unicorn.Gender) {
+            console.error('Missing unicorn properties:', unicorn);
+            alert('Invalid unicorn data received. Please try again.');
+            return;
+        }
+    
+        const pronoun = unicorn.Gender === 'Male' ? 'his' : 'her';
         displayUpdate(unicorn.Name + ', your ' + unicorn.Color + ' unicorn, is on ' + pronoun + ' way.');
+        
         animateArrival(function animateCallback() {
             displayUpdate(unicorn.Name + ' has arrived. Giddy up!');
             WildRydes.map.unsetLocation();
@@ -52,6 +83,7 @@ WildRydes.map = WildRydes.map || {};
             $('#request').text('Set Pickup');
         });
     }
+
 
     // Register click handler for #request button
     $(function onDocReady() {
