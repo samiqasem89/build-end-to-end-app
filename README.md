@@ -1,10 +1,11 @@
 # Wild Ryde Project 
-![Wild Rydes - Google Chrome 2025-04-15 09-58-17 (1)](https://github.com/user-attachments/assets/52cfc440-da7c-4e4e-85ed-1bb0388cfb83)
 
 
 I have developed an end-to-end AWS application that uses a variety of AWS services hosted on Amplify, using GitHub as a repository, Cognito for Authentication, Lambda for computation, 
 DynamoDB is used for storage, IAM roles are used to grant Lambda permission to write on the DynamoDB database, and API Gateway is used to handle requests. The application for users to request a ride from unicorn on a city map. I would like to share with you the process to achieve it.
 
+
+![diagram-export-4-14-2025-10_33_55-PM](https://github.com/user-attachments/assets/93f22bf9-5872-454a-8fa4-de81816c8614)
 
 
 ![Untitled Diagram drawio (1)](https://github.com/user-attachments/assets/4cce19c3-7e80-42c2-be15-319baf88f404)
@@ -323,7 +324,7 @@ API gateway can secure traffic between API consumer requests and the execution o
 •	Click on any location on the map\
 •	Choose request Unicorn 
 ![25](https://github.com/user-attachments/assets/8d5115c8-a6ee-4091-aeac-e322ed2726ff)
-
+![Wild Rydes - Google Chrome 2025-04-15 09-58-17 (1)](https://github.com/user-attachments/assets/52cfc440-da7c-4e4e-85ed-1bb0388cfb83)
 
 
 
