@@ -9,12 +9,19 @@ WildRydes.map = WildRydes.map || {};
         if (token) {
             authToken = token;
         } else {
-            window.location.href = '/signin.html';
+            displayGenericError('Authentication token not found. Redirecting to sign in.', '/signin.html');
         }
     }).catch(function handleTokenError(error) {
-        alert(error);
-        window.location.href = '/signin.html';
+        displayGenericError('Error retrieving authentication token: ' + error, '/signin.html');
     });
+
+    function displayGenericError(message, redirectTo) {
+        alert(message);
+        if (redirectTo) {
+            window.location.href = redirectTo;
+        }
+    }
+
     function requestUnicorn(pickupLocation) {
         $.ajax({
             method: 'POST',
@@ -31,11 +38,31 @@ WildRydes.map = WildRydes.map || {};
             contentType: 'application/json',
             success: completeRequest,
             error: function ajaxError(jqXHR, textStatus, errorThrown) {
-                console.error('Error requesting ride: ', textStatus, ', Details: ', errorThrown);
-                console.error('Response: ', jqXHR.responseText);
-                alert('An error occured when requesting your unicorn:\n' + jqXHR.responseText);
+                handleAjaxError(jqXHR, textStatus, errorThrown, 'An error occurred when requesting your unicorn');
+                // Re-enable the button and reset text if the request fails
+                $('#request').prop('disabled', false).text('Request Unicorn');
             }
         });
+    }
+
+    function handleAjaxError(jqXHR, textStatus, errorThrown, friendlyMessagePrefix) {
+        console.error(friendlyMessagePrefix + ': ', textStatus, ', Details: ', errorThrown);
+        console.error('Response: ', jqXHR.responseText);
+        var message = friendlyMessagePrefix;
+        if (jqXHR.responseText) {
+            // Attempt to parse JSON response for a more specific message
+            try {
+                var response = JSON.parse(jqXHR.responseText);
+                if (response.message) {
+                    message += ':\n' + response.message;
+                } else {
+                    message += ':\n' + jqXHR.responseText;
+                }
+            } catch (e) {
+                message += ':\n' + jqXHR.responseText;
+            }
+        }
+        alert(message);
     }
 
     function completeRequest(result) {
@@ -77,8 +104,27 @@ WildRydes.map = WildRydes.map || {};
     }
 
     function handleRequestClick(event) {
-        var pickupLocation = WildRydes.map.selectedPoint;
         event.preventDefault();
+        var requestButton = $('#request');
+
+        // Check 1: WildRydes.map and WildRydes.map.selectedPoint must exist
+        if (!WildRydes.map || !WildRydes.map.selectedPoint) {
+            console.error('Error: Map or selected pickup point is not available.');
+            alert('Please select a pickup location on the map first.');
+            return;
+        }
+
+        var pickupLocation = WildRydes.map.selectedPoint;
+
+        // Check 2: pickupLocation must have latitude and longitude
+        if (typeof pickupLocation.latitude === 'undefined' || typeof pickupLocation.longitude === 'undefined') {
+            console.error('Error: Selected pickup point does not have valid latitude or longitude.');
+            alert('The selected pickup location is invalid. Please try selecting again.');
+            return;
+        }
+
+        // All checks passed, proceed to disable button and request unicorn
+        requestButton.prop('disabled', true).text('Requesting...');
         requestUnicorn(pickupLocation);
     }
 

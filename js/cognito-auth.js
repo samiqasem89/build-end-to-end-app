@@ -110,6 +110,15 @@ var WildRydes = window.WildRydes || {};
         $('#signinForm').submit(handleSignin);
         $('#registrationForm').submit(handleRegister);
         $('#verifyForm').submit(handleVerify);
+
+        // Pre-fill email on verify page if passed as a query parameter
+        if (window.location.pathname.endsWith('verify.html')) {
+            var urlParams = new URLSearchParams(window.location.search);
+            var email = urlParams.get('email');
+            if (email) {
+                $('#emailInputVerify').val(email);
+            }
+        }
     });
 
     function handleSignin(event) {
@@ -135,13 +144,12 @@ var WildRydes = window.WildRydes || {};
         var onSuccess = function registerSuccess(result) {
             var cognitoUser = result.user;
             console.log('user name is ' + cognitoUser.getUsername());
-            var confirmation = ('Registration successful. Please check your email inbox or spam folder for your verification code.');
-            if (confirmation) {
-                window.location.href = 'verify.html';
-            }
+            alert('Registration successful. Please check your email inbox or spam folder for your verification code.');
+            // Pass email to verify page
+            window.location.href = 'verify.html?email=' + encodeURIComponent(email);
         };
         var onFailure = function registerFailure(err) {
-            alert(err);
+            alert(err.message || JSON.stringify(err));
         };
         event.preventDefault();
 
@@ -164,7 +172,7 @@ var WildRydes = window.WildRydes || {};
                 window.location.href = signinUrl;
             },
             function verifyError(err) {
-                alert(err);
+                alert(err.message || JSON.stringify(err));
             }
         );
     }
