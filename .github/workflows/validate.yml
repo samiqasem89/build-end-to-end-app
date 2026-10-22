@@ -1,0 +1,46 @@
+name: Validate Lambda
+
+on:
+  push:
+    paths:
+      - "backend/request-ride/**"
+      - ".github/workflows/validate.yml"
+
+  pull_request:
+    paths:
+      - "backend/request-ride/**"
+      - ".github/workflows/validate.yml"
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Syntax and unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    defaults:
+      run:
+        working-directory: backend/request-ride
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          package-manager-cache: false
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Check JavaScript syntax
+        run: npm run check
+
+      - name: Run unit tests
+        run: npm test
