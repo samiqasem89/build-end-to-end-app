@@ -22,3 +22,8 @@ coverage/
 # Operating system files
 .DS_Store
 Thumbs.db
+
+# Playwright generated output
+test-results/
+playwright-report/
+blob-report/
