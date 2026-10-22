@@ -251,7 +251,7 @@ function errorResponse(errorMessage, awsRequestId) {
 }
 ```
 •	Click 'Test`\
-•	The test will return `status 200` to confirm the `Lambda` as it should be
+•	The test will return `status 201` to confirm the `Lambda` as it should be
 
 #### Let's check if our DynamoDB is working
 •	Now navigate to DynamoDB and click the table you have created\
