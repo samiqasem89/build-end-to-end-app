@@ -1,14 +1,16 @@
-name: Validate Lambda
+name: Validate Application
 
 on:
   push:
     paths:
       - "backend/request-ride/**"
+      - "infra/**"
       - ".github/workflows/validate.yml"
 
   pull_request:
     paths:
       - "backend/request-ride/**"
+      - "infra/**"
       - ".github/workflows/validate.yml"
 
   workflow_dispatch:
@@ -16,15 +18,15 @@ on:
 permissions:
   contents: read
 
+env:
+  AWS_DEFAULT_REGION: us-east-1
+  SAM_CLI_TELEMETRY: "0"
+
 jobs:
   validate:
-    name: Syntax and unit tests
+    name: Test and validate infrastructure
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-
-    defaults:
-      run:
-        working-directory: backend/request-ride
+    timeout-minutes: 15
 
     steps:
       - name: Check out repository
@@ -36,11 +38,23 @@ jobs:
           node-version: "22"
           package-manager-cache: false
 
-      - name: Install dependencies
+      - name: Install Lambda dependencies
+        working-directory: backend/request-ride
         run: npm install
 
       - name: Check JavaScript syntax
+        working-directory: backend/request-ride
         run: npm run check
 
       - name: Run unit tests
+        working-directory: backend/request-ride
         run: npm test
+
+      - name: Set up AWS SAM
+        uses: aws-actions/setup-sam@v3
+
+      - name: Validate infrastructure template
+        run: sam validate --lint --template-file infra/template.yaml
+
+      - name: Build Lambda deployment package
+        run: sam build --template-file infra/template.yaml
