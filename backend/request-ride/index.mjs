@@ -1,6 +1,9 @@
-import { randomBytes } from 'crypto';
+import { randomBytes } from 'node:crypto';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
+import {
+    DynamoDBDocumentClient,
+    PutCommand
+} from '@aws-sdk/lib-dynamodb';
 
 const client = new DynamoDBClient({});
 const ddb = DynamoDBDocumentClient.from(client);
@@ -8,11 +11,13 @@ const ddb = DynamoDBDocumentClient.from(client);
 const fleet = [
     { Name: 'Angel', Color: 'White', Gender: 'Female' },
     { Name: 'Gil', Color: 'White', Gender: 'Male' },
-    { Name: 'Rocinante', Color: 'Yellow', Gender: 'Female' },
+    { Name: 'Rocinante', Color: 'Yellow', Gender: 'Female' }
 ];
 
 export const handler = async (event, context) => {
     const requestId = context.awsRequestId;
+
+    // API Gateway must validate the token before invoking Lambda.
     const username =
         event?.requestContext?.authorizer?.claims?.['cognito:username'];
 
@@ -23,6 +28,10 @@ export const handler = async (event, context) => {
     let requestBody;
 
     try {
+        if (typeof event.body !== 'string') {
+            throw new Error('Missing request body');
+        }
+
         const body = event.isBase64Encoded
             ? Buffer.from(event.body, 'base64').toString('utf8')
             : event.body;
@@ -36,9 +45,8 @@ export const handler = async (event, context) => {
         );
     }
 
-    const pickupLocation = requestBody?.PickupLocation;
-    const latitude = pickupLocation?.Latitude;
-    const longitude = pickupLocation?.Longitude;
+    const latitude = requestBody?.PickupLocation?.Latitude;
+    const longitude = requestBody?.PickupLocation?.Longitude;
 
     if (
         !Number.isFinite(latitude) ||
@@ -55,7 +63,27 @@ export const handler = async (event, context) => {
         );
     }
 
-    const rideId = toUrlString(randomBytes(16));
+    const tableName = process.env.TABLE_NAME;
+
+    if (!tableName) {
+        console.error(JSON.stringify({
+            event: 'configuration_error',
+            requestId,
+            setting: 'TABLE_NAME'
+        }));
+
+        return errorResponse(
+            'Unable to process your ride request.',
+            requestId,
+            500
+        );
+    }
+
+    const rideId = randomBytes(16)
+        .toString('base64')
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=/g, '');
 
     console.info(JSON.stringify({
         event: 'ride_request_received',
@@ -64,28 +92,27 @@ export const handler = async (event, context) => {
     }));
 
     try {
-        const unicorn = findUnicorn(pickupLocation);
+        const unicorn = findUnicorn();
 
-        await recordRide(rideId, username, unicorn);
+        await recordRide(tableName, rideId, username, unicorn);
 
-        return {
-            statusCode: 201,
-            headers: {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*'
-            },
-            body: JSON.stringify({
-                RideId: rideId,
-                Unicorn: unicorn,
-                Eta: '30 seconds',
-                Rider: username
-            })
-        };
+        console.info(JSON.stringify({
+            event: 'ride_request_completed',
+            requestId,
+            rideId
+        }));
+
+        return response(201, {
+            RideId: rideId,
+            Unicorn: unicorn,
+            Eta: '30 seconds',
+            Rider: username
+        });
     } catch (err) {
         console.error(JSON.stringify({
             event: 'ride_request_failed',
             requestId,
-            errorType: err.name
+            errorType: err?.name || 'UnknownError'
         }));
 
         return errorResponse(
@@ -96,73 +123,43 @@ export const handler = async (event, context) => {
     }
 };
 
-    const rideId = toUrlString(randomBytes(16));
-    console.info(JSON.stringify({
-    event: 'ride_request_received',
-    requestId: context.awsRequestId,
-    rideId: rideId
-    }));
-
-    const username = event.requestContext.authorizer.claims['cognito:username'];
-    const requestBody = JSON.parse(event.body);
-    const pickupLocation = requestBody.PickupLocation;
-
-    const unicorn = findUnicorn(pickupLocation);
-
-    try {
-        await recordRide(rideId, username, unicorn);
-        return {
-            statusCode: 201,
-            body: JSON.stringify({
-                RideId: rideId,
-                Unicorn: unicorn,
-                Eta: '30 seconds',
-                Rider: username,
-            }),
-            headers: {
-                'Access-Control-Allow-Origin': '*',
-            },
-        };
-    } catch (err) {
-        console.error(err);
-        return errorResponse(err.message, context.awsRequestId);
-    }
-};
-
-function findUnicorn(pickupLocation) {
+function findUnicorn() {
     return fleet[Math.floor(Math.random() * fleet.length)];
 }
 
-async function recordRide(rideId, username, unicorn) {
-    const params = {
-        TableName: 'Rides',
+async function recordRide(tableName, rideId, username, unicorn) {
+    await ddb.send(new PutCommand({
+        TableName: tableName,
         Item: {
             RideId: rideId,
             User: username,
             Unicorn: unicorn,
-            RequestTime: new Date().toISOString(),
-        },
+            RequestTime: new Date().toISOString()
+        }
+    }));
+}
+
+function response(statusCode, body) {
+    const headers = {
+        'Content-Type': 'application/json'
     };
-    await ddb.send(new PutCommand(params));
-}
 
-function toUrlString(buffer) {
-    return buffer.toString('base64')
-        .replace(/\+/g, '-')
-        .replace(/\//g, '_')
-        .replace(/=/g, '');
-}
+    // Add browser access only when an allowed origin is configured.
+    if (process.env.ALLOWED_ORIGIN) {
+        headers['Access-Control-Allow-Origin'] =
+            process.env.ALLOWED_ORIGIN;
+    }
 
-function errorResponse(errorMessage, awsRequestId, statusCode = 500) {
     return {
         statusCode,
-        headers: {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*'
-        },
-        body: JSON.stringify({
-            Error: errorMessage,
-            Reference: awsRequestId
-        })
+        headers,
+        body: JSON.stringify(body)
     };
+}
+
+function errorResponse(message, requestId, statusCode) {
+    return response(statusCode, {
+        Error: message,
+        Reference: requestId
+    });
 }
