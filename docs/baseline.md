@@ -1,22 +1,32 @@
-# Current Application Baseline
+# Current Project Baseline
 
-## AWS Resources
-- Region:
-- Amplify application:
-- Connected repository and branch:
-- Cognito user pool:
-- Cognito app client:
-- API Gateway API and stage:
-- Lambda function:
-- Lambda execution role:
-- DynamoDB table:
+## Project Status
+This repository documents a previously completed AWS
+serverless application project. The AWS resources are
+not currently deployed.
 
-## Current Test Results
-- User registration:
-- Email verification:
-- Sign-in:
-- Ride request:
-- DynamoDB record created:
+## Documented Architecture
+- AWS Amplify: Frontend hosting and GitHub integration
+- Amazon Cognito: User authentication
+- Amazon API Gateway: API endpoint and authorization
+- AWS Lambda: Ride-request processing
+- Amazon DynamoDB: Ride-data storage
+- AWS IAM: Service permissions
 
-## Known Issues
-- Not yet assessed.
+## Available Evidence
+- Implementation walkthrough in README.md
+- Architecture diagrams and screenshots
+- Frontend source code
+- Lambda code example in README.md
+
+## Current Verification
+Historical documentation reviewed.
+Live functionality has not been retested because
+the AWS resources are not currently deployed.
+
+## Planned Improvements
+- Move Lambda code into a separate source file
+- Improve input validation and logging
+- Document resource-scoped IAM permissions
+- Add Infrastructure as Code
+- Redeploy and record fresh test results
