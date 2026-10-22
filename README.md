@@ -1,4 +1,5 @@
 # AWS Serverless Application Security Lab
+[View the current architecture and request flow](docs/architecture.md)
 
 [![Validate Application](https://github.com/samiqasem89/build-end-to-end-app/actions/workflows/validate.yml/badge.svg)](https://github.com/samiqasem89/build-end-to-end-app/actions/workflows/validate.yml)
 
