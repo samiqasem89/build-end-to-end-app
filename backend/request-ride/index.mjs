@@ -12,9 +12,89 @@ const fleet = [
 ];
 
 export const handler = async (event, context) => {
-    if (!event.requestContext.authorizer) {
-        return errorResponse('Authorization not configured', context.awsRequestId);
+    const requestId = context.awsRequestId;
+    const username =
+        event?.requestContext?.authorizer?.claims?.['cognito:username'];
+
+    if (!username) {
+        return errorResponse('Unauthorized', requestId, 401);
     }
+
+    let requestBody;
+
+    try {
+        const body = event.isBase64Encoded
+            ? Buffer.from(event.body, 'base64').toString('utf8')
+            : event.body;
+
+        requestBody = JSON.parse(body);
+    } catch {
+        return errorResponse(
+            'Request body must contain valid JSON.',
+            requestId,
+            400
+        );
+    }
+
+    const pickupLocation = requestBody?.PickupLocation;
+    const latitude = pickupLocation?.Latitude;
+    const longitude = pickupLocation?.Longitude;
+
+    if (
+        !Number.isFinite(latitude) ||
+        !Number.isFinite(longitude) ||
+        latitude < -90 ||
+        latitude > 90 ||
+        longitude < -180 ||
+        longitude > 180
+    ) {
+        return errorResponse(
+            'Provide numeric Latitude between -90 and 90 and Longitude between -180 and 180.',
+            requestId,
+            400
+        );
+    }
+
+    const rideId = toUrlString(randomBytes(16));
+
+    console.info(JSON.stringify({
+        event: 'ride_request_received',
+        requestId,
+        rideId
+    }));
+
+    try {
+        const unicorn = findUnicorn(pickupLocation);
+
+        await recordRide(rideId, username, unicorn);
+
+        return {
+            statusCode: 201,
+            headers: {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*'
+            },
+            body: JSON.stringify({
+                RideId: rideId,
+                Unicorn: unicorn,
+                Eta: '30 seconds',
+                Rider: username
+            })
+        };
+    } catch (err) {
+        console.error(JSON.stringify({
+            event: 'ride_request_failed',
+            requestId,
+            errorType: err.name
+        }));
+
+        return errorResponse(
+            'Unable to process your ride request.',
+            requestId,
+            500
+        );
+    }
+};
 
     const rideId = toUrlString(randomBytes(16));
     console.info(JSON.stringify({
@@ -73,15 +153,16 @@ function toUrlString(buffer) {
         .replace(/=/g, '');
 }
 
-function errorResponse(errorMessage, awsRequestId) {
+function errorResponse(errorMessage, awsRequestId, statusCode = 500) {
     return {
-        statusCode: 500,
+        statusCode,
+        headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+        },
         body: JSON.stringify({
             Error: errorMessage,
-            Reference: awsRequestId,
-        }),
-        headers: {
-            'Access-Control-Allow-Origin': '*',
-        },
+            Reference: awsRequestId
+        })
     };
 }
