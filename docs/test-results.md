@@ -1,44 +1,90 @@
 # Verification Results
 
-## Current Status
+## Verified Workflow
 
-The Validate Lambda GitHub Actions workflow completed
-successfully on October 22, 2026.
+The following GitHub Actions run completed successfully:
 
-Workflow evidence:
-https://github.com/samiqasem89/build-end-to-end-app/actions/runs/39782355748
+https://github.com/samiqasem89/build-end-to-end-app/actions/runs/39791062859
 
-## Automated Checks
+This records verification at that revision.
+Later changes require another applicable workflow run.
 
-- JavaScript syntax check using npm run check.
-- Unit tests using Node.js's built-in test runner.
-- DynamoDB calls replaced with mocks; no AWS credentials required.
+## Summary
 
-## Unit Test Scenarios
-
-| Scenario | Expected behavior |
+| Check | Result |
 |---|---|
-| Missing authentication claims | 401; no database call |
-| Malformed JSON | 400; no database call |
-| Missing coordinates | 400; no database call |
-| Out-of-range coordinates | 400; no database call |
-| Coordinates supplied as strings | 400; no database call |
-| Valid request | 201; correct database command |
-| Base64-encoded JSON | 201; database command issued |
-| Missing table configuration | 500; no database call |
-| Database failure | Generic 500 without internal details |
-| No configured frontend origin | No CORS origin header |
+| Frontend JavaScript syntax | Passed |
+| Lambda JavaScript syntax | Passed |
+| Backend unit tests | 10 passed |
+| Chromium browser tests | 5 passed |
+| SAM template linting | Passed |
+| Lambda package build | Passed |
 
-## Verification Limits
+No AWS deployment or credentials were required.
 
-These are unit tests of the Lambda handler.
+## Backend Unit Tests
 
-They do not verify:
-- Actual Cognito token validation.
-- Deployed API Gateway authorization or CORS.
-- IAM permissions enforced by AWS.
-- Actual DynamoDB writes.
-- Infrastructure deployment.
+The tests call the Lambda handler with simulated events.
+DynamoDB requests are intercepted by a mock.
 
-The AWS resources are not currently deployed.
-Live integration tests are planned after redeployment.
+| Scenario | Verified behavior |
+|---|---|
+| Missing authentication claims | Returns 401 without a database call |
+| Malformed JSON | Returns 400 without a database call |
+| Missing coordinates | Returns 400 without a database call |
+| Out-of-range coordinates | Returns 400 without a database call |
+| Coordinates supplied as strings | Returns 400 without a database call |
+| Valid request | Returns 201 and constructs the expected database command |
+| Base64-encoded JSON | Accepts the request and issues a database command |
+| Missing table configuration | Returns 500 without a database call |
+| Database failure | Returns a generic error without internal database details |
+| Missing allowed origin | Omits the CORS origin header |
+
+A mocked database command does not prove that an actual
+DynamoDB write or IAM authorization will succeed.
+
+## Browser Tests
+
+Playwright runs the application in Chromium using a local
+Python web server and empty AWS configuration.
+
+| Scenario | Verified behavior |
+|---|---|
+| Sign-in page | Controls disabled and submission prevented |
+| Registration page | Controls disabled and submission prevented |
+| Email-verification page | Controls disabled and submission prevented |
+| Ride page | Request button disabled and token-display elements absent |
+| Sign-out | Redirects to sign-in without a configured user pool |
+
+The tests also check for uncaught page errors and unexpected
+external fetch or XMLHttpRequest traffic during these scenarios.
+
+External requests are intercepted.
+The ArcGIS script is replaced with a stub.
+Map rendering and external service availability are not tested.
+
+## Infrastructure Checks
+
+### Template Linting
+
+sam validate --lint checks the AWS SAM template using
+CloudFormation Linter.
+
+Passing linting does not prove that AWS will accept a deployment
+or that runtime permissions are correct.
+
+### Package Build
+
+sam build successfully packages the Lambda application.
+
+A successful build does not deploy the application.
+
+## Reproduce Backend Checks
+
+From the repository root:
+
+```bash
+cd backend/request-ride
+npm ci
+npm run check
+npm test
