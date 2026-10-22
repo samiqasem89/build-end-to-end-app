@@ -54,7 +54,7 @@ Resources:
         - ALLOW_USER_SRP_AUTH
         - ALLOW_REFRESH_TOKEN_AUTH
 
-    RideApi:
+  RideApi:
     Type: AWS::Serverless::Api
     Properties:
       StageName: dev
@@ -110,8 +110,7 @@ Resources:
                 Action:
                   - logs:CreateLogStream
                   - logs:PutLogEvents
-                Resource: !Sub >
-                  arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-request-ride:*
+                Resource: !Sub "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-request-ride:*"
 
   RideFunction:
     Type: AWS::Serverless::Function
@@ -144,9 +143,8 @@ Resources:
 
 Outputs:
   ApiBaseUrl:
-    Description: Base URL for js/config.js; do not append /ride here
-    Value: !Sub >
-      https://${RideApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/dev
+    Description: Base URL for js/config.js without the /ride path
+    Value: !Sub "https://${RideApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/dev"
 
   UserPoolId:
     Description: Cognito user pool ID for js/config.js
