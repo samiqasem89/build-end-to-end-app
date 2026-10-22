@@ -1,0 +1,176 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+
+Description: >
+  Serverless ride-request lab with Cognito authentication,
+  table-scoped Lambda permissions, and explicit log retention.
+
+Parameters:
+  AllowedOrigin:
+    Type: String
+    Description: >
+      Frontend origin without a trailing slash,
+      for example https://example.amplifyapp.com
+    AllowedPattern: "^https://[^/]+$"
+
+Resources:
+  RidesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: RideId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: RideId
+          KeyType: HASH
+
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UsernameAttributes:
+        - email
+      AutoVerifiedAttributes:
+        - email
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 12
+          RequireLowercase: true
+          RequireUppercase: true
+          RequireNumbers: true
+          RequireSymbols: true
+      Schema:
+        - Name: email
+          Required: true
+          Mutable: true
+
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref UserPool
+      GenerateSecret: false
+      PreventUserExistenceErrors: ENABLED
+      ExplicitAuthFlows:
+        - ALLOW_USER_SRP_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+
+  RideApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: dev
+      EndpointConfiguration: REGIONAL
+      Cors:
+        AllowOrigin: !Sub "'${AllowedOrigin}'"
+        AllowHeaders: "'Content-Type,Authorization'"
+        AllowMethods: "'OPTIONS,POST'"
+      Auth:
+        DefaultAuthorizer: CognitoAuthorizer
+        AddDefaultAuthorizerToCorsPreflight: false
+        Authorizers:
+          CognitoAuthorizer:
+            UserPoolArn: !GetAtt UserPool.Arn
+
+  RideFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: WriteRideRecords
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: dynamodb:PutItem
+                Resource: !GetAtt RidesTable.Arn
+
+        - PolicyName: WriteFunctionLogs
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub >
+                  arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-request-ride:*
+
+  RideFunction:
+    Type: AWS::Serverless::Function
+    DependsOn: RideFunctionLogGroup
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-request-ride"
+      CodeUri: ../backend/request-ride/
+      Handler: index.handler
+      Runtime: nodejs22.x
+      MemorySize: 128
+      Timeout: 10
+      Role: !GetAtt RideFunctionRole.Arn
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref RidesTable
+          ALLOWED_ORIGIN: !Ref AllowedOrigin
+      Events:
+        RequestRide:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RideApi
+            Path: /ride
+            Method: post
+
+  RideFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${AWS::StackName}-request-ride"
+      RetentionInDays: 7
+
+  ApiDefault4xx:
+    Type: AWS::ApiGateway::GatewayResponse
+    Properties:
+      RestApiId: !Ref RideApi
+      ResponseType: DEFAULT_4XX
+      ResponseParameters:
+        gatewayresponse.header.Access-Control-Allow-Origin: !Sub "'${AllowedOrigin}'"
+        gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization'"
+        gatewayresponse.header.Access-Control-Allow-Methods: "'OPTIONS,POST'"
+
+  ApiDefault5xx:
+    Type: AWS::ApiGateway::GatewayResponse
+    Properties:
+      RestApiId: !Ref RideApi
+      ResponseType: DEFAULT_5XX
+      ResponseParameters:
+        gatewayresponse.header.Access-Control-Allow-Origin: !Sub "'${AllowedOrigin}'"
+        gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization'"
+        gatewayresponse.header.Access-Control-Allow-Methods: "'OPTIONS,POST'"
+
+Outputs:
+  ApiBaseUrl:
+    Description: Base URL for js/config.js; do not append /ride here
+    Value: !Sub >
+      https://${RideApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/dev
+
+  UserPoolId:
+    Description: Cognito user pool ID for js/config.js
+    Value: !Ref UserPool
+
+  UserPoolClientId:
+    Description: Cognito app client ID for js/config.js
+    Value: !Ref UserPoolClient
+
+  Region:
+    Description: AWS region for js/config.js
+    Value: !Ref AWS::Region
+
+  TableName:
+    Description: DynamoDB rides table
+    Value: !Ref RidesTable
+
+  FunctionName:
+    Description: Lambda function name
+    Value: !Ref RideFunction
