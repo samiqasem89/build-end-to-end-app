@@ -40,7 +40,7 @@ jobs:
 
       - name: Install Lambda dependencies
         working-directory: backend/request-ride
-        run: npm install
+        run: npm ci
 
       - name: Check JavaScript syntax
         working-directory: backend/request-ride
