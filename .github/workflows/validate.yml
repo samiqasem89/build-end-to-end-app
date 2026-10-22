@@ -5,12 +5,16 @@ on:
     paths:
       - "backend/request-ride/**"
       - "infra/**"
+      - "js/**"
+      - "*.html"
       - ".github/workflows/validate.yml"
 
   pull_request:
     paths:
       - "backend/request-ride/**"
       - "infra/**"
+      - "js/**"
+      - "*.html"
       - ".github/workflows/validate.yml"
 
   workflow_dispatch:
@@ -24,7 +28,7 @@ env:
 
 jobs:
   validate:
-    name: Test and validate infrastructure
+    name: Check frontend and backend
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -38,15 +42,23 @@ jobs:
           node-version: "22"
           package-manager-cache: false
 
+      - name: Check frontend JavaScript syntax
+        run: |
+          node --check js/config.js
+          node --check js/cognito-auth.js
+          node --check js/ride.js
+          node --check js/esri-map.js
+          node --check js/main.js
+
       - name: Install Lambda dependencies
         working-directory: backend/request-ride
         run: npm ci
 
-      - name: Check JavaScript syntax
+      - name: Check Lambda JavaScript syntax
         working-directory: backend/request-ride
         run: npm run check
 
-      - name: Run unit tests
+      - name: Run Lambda unit tests
         working-directory: backend/request-ride
         run: npm test
 
