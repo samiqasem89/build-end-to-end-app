@@ -1,4 +1,4 @@
-# Wild Ryde Project 
+# AWS Serverless Application Security Lab
 
 
 I have developed an end-to-end AWS application that uses a variety of AWS services hosted on Amplify, using GitHub as a repository, Cognito for Authentication, Lambda for computation, 
