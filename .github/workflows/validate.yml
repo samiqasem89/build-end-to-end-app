@@ -4,16 +4,20 @@ on:
   push:
     paths:
       - "backend/request-ride/**"
+      - "frontend-tests/**"
       - "infra/**"
       - "js/**"
+      - "css/**"
       - "*.html"
       - ".github/workflows/validate.yml"
 
   pull_request:
     paths:
       - "backend/request-ride/**"
+      - "frontend-tests/**"
       - "infra/**"
       - "js/**"
+      - "css/**"
       - "*.html"
       - ".github/workflows/validate.yml"
 
@@ -28,9 +32,9 @@ env:
 
 jobs:
   validate:
-    name: Check frontend and backend
+    name: Check application and infrastructure
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
       - name: Check out repository
@@ -41,6 +45,11 @@ jobs:
         with:
           node-version: "22"
           package-manager-cache: false
+
+      - name: Set up Python for local web server
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
 
       - name: Check frontend JavaScript syntax
         run: |
@@ -61,6 +70,18 @@ jobs:
       - name: Run Lambda unit tests
         working-directory: backend/request-ride
         run: npm test
+
+      - name: Install browser test dependencies
+        working-directory: frontend-tests
+        run: npm ci
+
+      - name: Install Chromium
+        working-directory: frontend-tests
+        run: npx playwright install --with-deps chromium
+
+      - name: Run browser tests
+        working-directory: frontend-tests
+        run: npx playwright test --config=playwright.config.cjs --reporter=list
 
       - name: Set up AWS SAM
         uses: aws-actions/setup-sam@v3
