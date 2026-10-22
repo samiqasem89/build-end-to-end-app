@@ -27,3 +27,8 @@ Thumbs.db
 test-results/
 playwright-report/
 blob-report/
+
+# Playwright generated output
+test-results/
+playwright-report/
+blob-report/
