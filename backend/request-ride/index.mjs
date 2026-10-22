@@ -17,7 +17,11 @@ export const handler = async (event, context) => {
     }
 
     const rideId = toUrlString(randomBytes(16));
-    console.log('Received event (', rideId, '): ', event);
+    console.info(JSON.stringify({
+    event: 'ride_request_received',
+    requestId: context.awsRequestId,
+    rideId: rideId
+    }));
 
     const username = event.requestContext.authorizer.claims['cognito:username'];
     const requestBody = JSON.parse(event.body);
@@ -46,7 +50,6 @@ export const handler = async (event, context) => {
 };
 
 function findUnicorn(pickupLocation) {
-    console.log('Finding unicorn for ', pickupLocation.Latitude, ', ', pickupLocation.Longitude);
     return fleet[Math.floor(Math.random() * fleet.length)];
 }
 
