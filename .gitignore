@@ -1,0 +1,24 @@
+# Installed Node.js dependencies
+node_modules/
+
+# AWS SAM build output
+.aws-sam/
+
+# Local environment variables
+.env
+.env.*
+!.env.example
+
+# Local AWS credentials and configuration
+.aws/
+
+# Local deployment settings
+samconfig.toml
+
+# Test coverage and logs
+coverage/
+*.log
+
+# Operating system files
+.DS_Store
+Thumbs.db
