@@ -1,7 +1,7 @@
 # AWS Serverless Application Security Lab
 [View the current architecture and request flow](docs/architecture.md)
 
-[![Validate Application](https://github.com/samiqasem89/build-end-to-end-app/actions/workflows/validate.yml/badge.svg)](https://github.com/samiqasem89/build-end-to-end-app/actions/workflows/validate.yml)
+[![Validate Application](https://github.com/samiqasem89/aws-serverless-security-lab/actions/workflows/validate.yml/badge.svg)](https://github.com/samiqasem89/aws-serverless-security-lab/actions/workflows/validate.yml)
 
 An educational AWS serverless application demonstrating authentication,
 IAM permissions, request validation, Infrastructure as Code, and
@@ -284,9 +284,9 @@ GitHub Actions runs:
 6. SAM template validation.
 7. Lambda deployment-package build.
 
-[View workflow runs](https://github.com/samiqasem89/build-end-to-end-app/actions/workflows/validate.yml)
+[View workflow runs](https://github.com/samiqasem89/aws-serverless-security-lab/actions/workflows/validate.yml)
 
-[Verified successful run](https://github.com/samiqasem89/build-end-to-end-app/actions/runs/39791062859)
+[Verified successful run](https://github.com/samiqasem89/aws-serverless-security-lab/actions/runs/39791062859)
 
 This is a continuous integration workflow.
 It does not deploy the application to AWS.

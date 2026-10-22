@@ -57,7 +57,7 @@ of the current revision.
 | Lambda package build | Passed |
 
 Evidence:
-https://github.com/samiqasem89/build-end-to-end-app/actions/runs/39791062859
+https://github.com/samiqasem89/aws-serverless-security-lab/actions/runs/39791062859
 
 ## Verification Boundaries
 

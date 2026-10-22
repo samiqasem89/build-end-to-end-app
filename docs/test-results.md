@@ -4,7 +4,7 @@
 
 The following GitHub Actions run completed successfully:
 
-https://github.com/samiqasem89/build-end-to-end-app/actions/runs/39791062859
+https://github.com/samiqasem89/aws-serverless-security-lab/actions/runs/39791062859
 
 This records verification at that revision.
 Later changes require another applicable workflow run.
