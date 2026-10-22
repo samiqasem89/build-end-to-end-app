@@ -54,7 +54,7 @@ Resources:
         - ALLOW_USER_SRP_AUTH
         - ALLOW_REFRESH_TOKEN_AUTH
 
-  RideApi:
+    RideApi:
     Type: AWS::Serverless::Api
     Properties:
       StageName: dev
@@ -69,6 +69,19 @@ Resources:
         Authorizers:
           CognitoAuthorizer:
             UserPoolArn: !GetAtt UserPool.Arn
+      GatewayResponses:
+        DEFAULT_4XX:
+          ResponseParameters:
+            Headers:
+              Access-Control-Allow-Origin: !Sub "'${AllowedOrigin}'"
+              Access-Control-Allow-Headers: "'Content-Type,Authorization'"
+              Access-Control-Allow-Methods: "'OPTIONS,POST'"
+        DEFAULT_5XX:
+          ResponseParameters:
+            Headers:
+              Access-Control-Allow-Origin: !Sub "'${AllowedOrigin}'"
+              Access-Control-Allow-Headers: "'Content-Type,Authorization'"
+              Access-Control-Allow-Methods: "'OPTIONS,POST'"
 
   RideFunctionRole:
     Type: AWS::IAM::Role
@@ -128,26 +141,6 @@ Resources:
     Properties:
       LogGroupName: !Sub "/aws/lambda/${AWS::StackName}-request-ride"
       RetentionInDays: 7
-
-  ApiDefault4xx:
-    Type: AWS::ApiGateway::GatewayResponse
-    Properties:
-      RestApiId: !Ref RideApi
-      ResponseType: DEFAULT_4XX
-      ResponseParameters:
-        gatewayresponse.header.Access-Control-Allow-Origin: !Sub "'${AllowedOrigin}'"
-        gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization'"
-        gatewayresponse.header.Access-Control-Allow-Methods: "'OPTIONS,POST'"
-
-  ApiDefault5xx:
-    Type: AWS::ApiGateway::GatewayResponse
-    Properties:
-      RestApiId: !Ref RideApi
-      ResponseType: DEFAULT_5XX
-      ResponseParameters:
-        gatewayresponse.header.Access-Control-Allow-Origin: !Sub "'${AllowedOrigin}'"
-        gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization'"
-        gatewayresponse.header.Access-Control-Allow-Methods: "'OPTIONS,POST'"
 
 Outputs:
   ApiBaseUrl:
